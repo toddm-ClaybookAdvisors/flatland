@@ -1,4 +1,4 @@
-# game-v1
+# flatland
 
 I'm just monkeying around with a simple 2D text-based game engine to dust off my Go skills.
 

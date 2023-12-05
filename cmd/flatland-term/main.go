@@ -28,6 +28,7 @@ func getRandomDirection(exclusion string) (direction string, err error) {
 		// run this puppy until it comes back with a direction that isn't the exclusion
 		// Hacky as hell, but is simple for now
 		if direction != exclusion {
+			fmt.Printf("exclusion[%s] index[%d] direction[%s]", exclusion, randomIndex, direction)
 			return direction, nil
 		}
 	}
@@ -35,19 +36,18 @@ func getRandomDirection(exclusion string) (direction string, err error) {
 
 func main() {
 	// Create a new WorldMap instance with dimensions 40x10
-	worldMap := worldmap.NewWorldMap(200, 60)
+	worldMap := worldmap.NewWorldMap(10, 10)
 
-	ox, y := 0, 5
-	worldMap.Put(ox, y, "*")
+	playerOne := worldmap.NewElement("Player One", "*", worldmap.Point{X: worldMap.Size.X / 2, Y: worldMap.Size.Y / 2})
 
 	// Move an element across the map
 	var err error
 	direction := worldmap.RIGHT
 	var isEdge bool
 	var edgeType string
-	for x := ox; x < worldMap.Width; {
+	for x := playerOne.Position.X; x < worldMap.Size.X; {
 
-		isEdge, edgeType = worldMap.IsMapEdge(x, y)
+		isEdge, edgeType = worldMap.IsMapEdge(playerOne.Position)
 
 		if isEdge {
 			switch edgeType {
@@ -64,11 +64,9 @@ func main() {
 				fmt.Println(err)
 				return
 			}
-
-			getRandomDirection(worldmap.LEFT) // test
 		}
 
-		x, y, err = worldMap.Move(x, y, direction)
+		_, err := worldMap.Move(playerOne, direction)
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
 			break

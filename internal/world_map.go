@@ -19,100 +19,113 @@ const (
 	BOTTOM = "B"
 )
 
-type Position struct {
-}
-
 // WorldMap represents a 2D map with a grid of cells.
 type WorldMap struct {
-	Width  int        // Width is the number of columns in the map.
-	Height int        // Height is the number of rows in the map.
-	matrix [][]string // matrix stores the grid of cells as strings.
+	Size   Point       // Size stores the width and height of the map.
+	matrix [][]Element // matrix stores the grid of cells as Elements.
 }
 
 // NewWorldMap creates a new WorldMap instance with the specified dimensions.
 // It preallocates memory for the map and initializes all cells with ".".
-func NewWorldMap(width, height int) *WorldMap {
-	matrix := make([][]string, height)
+func NewWorldMap(width, height uint32) *WorldMap {
+	matrix := make([][]Element, height)
 	for i := range matrix {
-		matrix[i] = make([]string, width)
+		matrix[i] = make([]Element, width)
 		for j := range matrix[i] {
-			matrix[i][j] = "."
+			matrix[i][j] = *NewElement("background", ".", Point{uint32(j), uint32(i)})
 		}
 	}
 	return &WorldMap{
-		Width:  width,
-		Height: height,
+		Size:   Point{width, height},
 		matrix: matrix,
 	}
 }
 
 // Put sets the value of a specific cell at coordinates (x, y).
 // It checks if the coordinates are within bounds and returns an error if not.
-func (wm *WorldMap) Put(x, y int, element string) error {
-	if !wm.IsValidCoord(x, y) {
-		return fmt.Errorf("coordinates (%d, %d) are out of bounds", x, y)
+func (wm *WorldMap) Put(el Element) error {
+
+	if !el.hasPosition() {
+		return fmt.Errorf("element %s has no position", el.Name)
 	}
 
-	wm.matrix[y][x] = element
+	if !wm.IsValidCoord(*el.Position) {
+		return fmt.Errorf("coordinates (%d, %d) are out of bounds", el.Position.X, el.Position.Y)
+	}
+
+	wm.matrix[el.Position.Y][el.Position.Y] = el
 	return nil
 }
 
 // Move moves an element from one cell to another in the specified direction.
 // It checks if the movement is valid and returns an error if not.
-func (wm *WorldMap) Move(x, y int, direction string) (newX, newY int, err error) {
-	newX, newY = x, y
+func (wm *WorldMap) Move(element *Element, direction string) (position *Point, err error) {
+	if !element.hasPosition() {
+		return nil, fmt.Errorf("element %s has no position", element.Name)
+	}
+
+	originalElement := wm.GetElementCopyAt(element.Position.X, element.Position.Y)
+
+	np := Point{element.Position.X, element.Position.Y}
 
 	switch direction {
 	case UP:
-		newY++
+		np.Y++
 	case DOWN:
-		newY--
+		np.Y--
 	case LEFT:
-		newX--
+		np.X--
 	case RIGHT:
-		newX++
+		np.X++
 	default:
-		return -1, -1, fmt.Errorf("unknown direction: %s", direction)
+		return nil, fmt.Errorf("unknown direction: %s", direction)
 	}
 
-	if !wm.IsValidCoord(newX, newY) {
-		return -1, -1, fmt.Errorf("invalid move to (%d, %d)", newX, newY)
+	if !wm.IsValidCoord(np) {
+		return nil, fmt.Errorf("invalid move to (%d, %d)", np.X, np.Y)
 	}
 
-	oldElement := wm.matrix[newY][newX]
-	currentElement := wm.matrix[y][x]
+	movedElement := element.SetPosition(np.X, np.Y)
 
-	wm.Put(newX, newY, currentElement)
-	wm.Put(x, y, oldElement)
+	wm.Put(originalElement)
+	wm.Put(*movedElement)
 
-	return newX, newY, nil
+	return movedElement.Position, nil
 }
 
-// IsValidCoord checks if the given coordinates are within bounds.
-func (wm *WorldMap) IsValidCoord(x, y int) bool {
-	return x >= 0 && x < wm.Width && y >= 0 && y < wm.Height
+// IsValidCoord checks if the given position is within bounds.
+func (wm *WorldMap) IsValidCoord(pos Point) bool {
+	return pos.X < uint32(wm.Size.X) && pos.Y < uint32(wm.Size.Y)
 }
 
-func (wm *WorldMap) IsMapEdge(x, y int) (isEdge bool, edgeType string) {
-	topY := wm.Height - 1
-	bottomY := 0
+func (wm *WorldMap) IsMapEdge(p *Point) (isEdge bool, edgeType string) {
+	topY := wm.Size.Y - 1
+	bottomY := uint32(0)
 
-	leftX := 0
-	rightX := wm.Width - 1
+	leftX := uint32(0)
+	rightX := wm.Size.X - 1
 
 	switch {
-	case x == leftX:
+	case p.X == leftX:
 		return true, LEFT
-	case x == rightX:
+	case p.X == rightX:
 		return true, RIGHT
-	case y == topY:
+	case p.Y == topY:
 		return true, TOP
-	case y == bottomY:
+	case p.Y == bottomY:
 		return true, BOTTOM
 	default:
 		return false, ""
 
 	}
+}
+
+func (wm *WorldMap) GetElementCopyAt(x, y uint32) Element {
+	return wm.matrix[y][x]
+}
+
+func (wm *WorldMap) GetElementAt(x, y uint32) *Element {
+	return &wm.matrix[y][x]
 }
 
 // PrintMap prints the current state of the WorldMap with element movement.
@@ -127,7 +140,7 @@ func (wm *WorldMap) String() string {
 
 	for _, row := range wm.matrix {
 		for _, cell := range row {
-			builder.WriteString(cell)
+			builder.WriteString(cell.String())
 		}
 		builder.WriteString("\n")
 	}

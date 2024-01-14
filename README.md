@@ -12,4 +12,4 @@ Feel free to use or reference this repository at your own risk. It will be chang
 P.S. "changing more often than a chameleon at a disco party" is what happens when you ask ChatGPT to "check grammar, spelling and make it more humorous".  The exploding cat thing is mine.
 
 ## Important Notes
-12/14/2024: I'm testing out working from a docker dev environment
+12/14/2024: I'm testing out working from a docker dev environment.  This experiment has been a success.  My local dev environment broke, but the containerized environment still works.  Now the big question is did using the docker dev containers break my local environment...
